@@ -119,8 +119,6 @@ def _worker_loop() -> None:
 
 def start_workers_if_needed(worker_count: int = 2) -> None:
     global _workers_started
-    if _workers_started:
-        return
     with _startup_lock:
         if _workers_started:
             return
@@ -138,6 +136,7 @@ def submit_job(
     gpu_class: str = "small",
 ) -> Dict[str, Any]:
     start_workers_if_needed()
+    _cleanup_job_history_if_needed()
     if priority not in _VALID_PRIORITIES:
         raise ValueError(f"Invalid priority '{priority}'. Use one of: {', '.join(sorted(_VALID_PRIORITIES))}")
     if gpu_class not in _VALID_GPU_CLASSES:
@@ -152,7 +151,6 @@ def submit_job(
     )
     with _jobs_lock:
         _jobs[job.id] = job
-    _cleanup_job_history_if_needed()
     _job_queue.put(job.id)
     return job.to_dict()
 
